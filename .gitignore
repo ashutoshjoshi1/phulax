@@ -1,0 +1,41 @@
+# Environment & credentials — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+credentials*.json
+secrets/
+
+# Private evidence (interview notes, customer lists) — repo is public
+docs/evidence/private/
+
+# Private build-plan phase docs (00-day-zero.md, 01-*.md, …) — not public
+/[0-9][0-9]-*.md
+
+# Data exports
+*.dump
+*.sql.gz
+exports/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Node
+node_modules/
+
+# Docker
+docker-compose.override.yml
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
