@@ -23,6 +23,8 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.8",
     "pre-commit>=4.0",
+    "hypothesis>=6.100",
+    "httpx>=0.27",
 ]
 
 [tool.pytest.ini_options]
@@ -31,7 +33,7 @@ addopts = "-q --import-mode=importlib"
 # Explicit src paths: editable-install .pth files can be silently skipped on
 # macOS when iCloud/uv set the UF_HIDDEN flag (CPython 3.13+ ignores hidden
 # .pth files). Tests must not depend on that mechanism.
-pythonpath = ["apps/api/src", "apps/gateway/src"]
+pythonpath = ["apps/api/src", "apps/gateway/src", "."]
 
 [tool.ruff]
 line-length = 100
@@ -39,3 +41,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI dependency injection uses calls in argument defaults by design.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Query", "fastapi.Body"]

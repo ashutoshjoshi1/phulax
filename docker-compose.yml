@@ -27,5 +27,55 @@ services:
       timeout: 3s
       retries: 10
 
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      PHULAX_ENV: ${PHULAX_ENV:-dev}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-phulax}:${POSTGRES_PASSWORD:-phulax-dev-only}@postgres:5432/${POSTGRES_DB:-phulax}
+      GATEWAY_SIGNING_KEY: ${GATEWAY_SIGNING_KEY:-fake-dev-key-change-me-not-a-secret-0001}
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/app/.venv/bin/python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    environment:
+      PHULAX_ENV: ${PHULAX_ENV:-dev}
+      CONTROL_PLANE_URL: http://api:8000
+      GATEWAY_SIGNING_KEY: ${GATEWAY_SIGNING_KEY:-fake-dev-key-change-me-not-a-secret-0001}
+    ports:
+      - "127.0.0.1:${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/app/.venv/bin/python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
   postgres-data:

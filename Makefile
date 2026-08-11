@@ -5,6 +5,10 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
+# Load .env when present (local overrides); CI and clean clones use defaults.
+UV := uv run $(if $(wildcard .env),--env-file .env,)
+SRC := PYTHONPATH=apps/api/src:apps/gateway/src
+
 .PHONY: help bootstrap dev down migrate seed test demo
 
 help: ## List available targets
@@ -18,23 +22,21 @@ bootstrap: ## Create venv, install locked dependencies, install git hooks
 	uv run pre-commit install
 	@echo "bootstrap: done. Copy .env.example to .env before 'make dev'."
 
-dev: ## Start local services (Day 0: postgres + redis only)
-	docker compose up -d --wait postgres redis
+dev: ## Start local services: postgres, redis, api, gateway
+	docker compose up -d --build --wait postgres redis api gateway
 	docker compose ps
 
 down: ## Stop local services
 	docker compose down
 
-migrate: ## Apply database schema (Day 0 stub — Day 1 wires migrations)
-	@echo "migrate: no migrations yet (Day 0 stub). Day 1 adds the first schema."
+migrate: ## Apply database schema (alembic upgrade head)
+	$(SRC) $(UV) --no-sync alembic -c apps/api/alembic.ini upgrade head
 
-seed: ## Seed demo org, agent, tools, policies (Day 0 stub)
-	@echo "seed: nothing to seed yet (Day 0 stub). Arrives with the first schema."
+seed: ## Seed demo org, owner, agent, tools via the API
+	$(UV) --no-sync python scripts/seed.py
 
-test: ## Run unit + integration tests
-	uv run pytest
+test: ## Run unit + integration tests (integration needs 'make dev')
+	$(UV) pytest
 
-demo: ## One safe tool call through the gateway (Day 0 stub)
-	@echo "demo: gateway not built yet (Day 0 stub)."
-	@echo "Tomorrow's outcome: an authenticated agent call reaches the gateway"
-	@echo "and produces a structured decision event."
+demo: ## One safe tool call through the gateway -> decision event in the DB
+	$(UV) --no-sync python scripts/demo.py

@@ -10,6 +10,22 @@ jobs:
   smoke:
     name: install clean & smoke test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: phulax
+          POSTGRES_PASSWORD: phulax-dev-only
+          POSTGRES_DB: phulax
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U phulax"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://phulax:phulax-dev-only@localhost:5432/phulax
     steps:
       - uses: actions/checkout@v4
 
@@ -26,7 +42,7 @@ jobs:
           uv run ruff format --check .
           uv run ruff check .
 
-      - name: Smoke test
+      - name: Tests (unit + integration against service postgres)
         run: uv run pytest
 
   secrets:

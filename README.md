@@ -99,8 +99,11 @@ Requires [uv](https://docs.astral.sh/uv/) and Docker.
 git clone https://github.com/phulax-io/phulax.git && cd phulax
 cp .env.example .env
 make bootstrap   # venv + locked dependencies + git hooks
-make test        # smoke test — green from a clean clone
-make dev         # local services (Day 0: postgres + redis)
+make dev         # postgres, redis, control-plane api, gateway
+make migrate     # apply the schema
+make seed        # demo org, agent, tools
+make demo        # authenticated agent call → decision event in the DB
+make test        # unit + integration tests — green from a clean clone
 ```
 
 Every phase of the build honors the same six-verb contract (`make help`):
@@ -108,11 +111,11 @@ Every phase of the build honors the same six-verb contract (`make help`):
 | Verb | Does |
 |------|------|
 | `make bootstrap` | venvs + locked dependencies + pre-commit hooks |
-| `make dev` | postgres, redis *(later: api, web, local gateway)* |
-| `make migrate` | apply schema *(Day 0 stub)* |
-| `make seed` | demo org, agent, tools, policies *(Day 0 stub)* |
+| `make dev` | postgres, redis, control-plane api, local gateway |
+| `make migrate` | apply the 8-entity schema (reversible migrations) |
+| `make seed` | demo org, owner, agent v1.0.0, three classified tools |
 | `make test` | unit + integration tests |
-| `make demo` | one safe tool call through the gateway *(Day 0 stub)* |
+| `make demo` | one safe `read_order` call through the gateway |
 
 If `make bootstrap && make test` fails on a clean clone, that's a bug —
 [open an issue](https://github.com/phulax-io/phulax/issues).
@@ -123,8 +126,10 @@ Built in public, one honest phase at a time:
 
 - [x] **Day 0 — evidence system & workspace**: reproducible env, threat
       model (15 threats), data inventory, 3 ADRs, CI + secret scanning
-- [ ] **Gateway v1**: an authenticated agent call reaches the gateway and
-      produces a structured decision event
+- [x] **Gateway v1 — walking skeleton**: an authenticated agent call (JWT:
+      short-lived, audience- and environment-bound, agent+version-bound)
+      reaches the gateway and produces a structured, metadata-first decision
+      event with a canonical request hash
 - [ ] **Policy engine**: deterministic allow / block / hold verdicts,
       table-driven-tested, every verdict citing its rule
 - [ ] **Approvals & freeze**: human-in-the-loop for held actions, one-switch

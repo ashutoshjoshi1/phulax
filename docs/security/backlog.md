@@ -26,3 +26,11 @@ item cites its threat ID. Re-groom at each phase boundary.
 Done on Day 0 (this scaffold): lockfiles (`uv.lock`), pre-commit secret
 scanning (gitleaks), CI secret scan, Dependabot, `.env` hygiene — T15
 foundations; metadata-first decided before any event exists — T13/R3.
+
+Done in Phase 1 (walking skeleton): signed agent identity tokens
+(short-lived, audience-restricted, environment-bound, agent+version-bound)
+with revocation checked per call — T06 and the T4 foundation; canonical
+request hashing (the mechanism approval binding and idempotency will use) —
+groundwork for items 2 and 3; metadata-only event schema enforced end to
+end (args shape, never values) — item 7 partially, raw-capture flag still
+to come.
