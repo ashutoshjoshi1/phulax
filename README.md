@@ -26,11 +26,6 @@ Your credentials and your data never leave your environment.
 
 ---
 
-> ⚠️ **Honesty first: this is Day 0 of the build.** What exists today is a
-> reproducible workspace, a threat model, and the architecture decisions —
-> not a working gateway. The [roadmap](#status--roadmap) below never claims
-> more than reality. Star the repo and watch it grow in public.
-
 ## Why Phulax
 
 You shipped an agent that can *act* — issue refunds, send email, touch the
