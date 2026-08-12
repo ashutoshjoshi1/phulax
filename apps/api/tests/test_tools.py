@@ -3,10 +3,11 @@ and side-effect class."""
 
 
 def _tool(org_id: str, **overrides) -> dict:
+    # "capture_payment" is deliberately not in the seeded fixture set.
     body = {
         "org_id": org_id,
-        "name": "issue_refund",
-        "description": "Refund a payment (simulated)",
+        "name": "capture_payment",
+        "description": "Capture a payment (simulated)",
         "args_schema": {
             "type": "object",
             "properties": {"order_id": {"type": "string"}, "amount": {"type": "number"}},

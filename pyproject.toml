@@ -6,21 +6,24 @@ requires-python = ">=3.12"
 dependencies = [
     "phulax-api",
     "phulax-gateway",
+    "phulax-policy",
 ]
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["apps/api", "apps/gateway"]
+members = ["apps/api", "apps/gateway", "packages/policy"]
 
 [tool.uv.sources]
 phulax-api = { workspace = true }
 phulax-gateway = { workspace = true }
+phulax-policy = { workspace = true }
 
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    "pytest-repeat>=0.9",
     "ruff>=0.8",
     "pre-commit>=4.0",
     "hypothesis>=6.100",
@@ -28,12 +31,12 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["apps/api/tests", "apps/gateway/tests"]
+testpaths = ["packages/policy/tests", "apps/api/tests", "apps/gateway/tests"]
 addopts = "-q --import-mode=importlib"
 # Explicit src paths: editable-install .pth files can be silently skipped on
 # macOS when iCloud/uv set the UF_HIDDEN flag (CPython 3.13+ ignores hidden
 # .pth files). Tests must not depend on that mechanism.
-pythonpath = ["apps/api/src", "apps/gateway/src", "."]
+pythonpath = ["apps/api/src", "apps/gateway/src", "packages/policy/src", "."]
 
 [tool.ruff]
 line-length = 100

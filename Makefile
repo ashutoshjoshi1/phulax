@@ -7,7 +7,7 @@ SHELL := /bin/bash
 
 # Load .env when present (local overrides); CI and clean clones use defaults.
 UV := uv run $(if $(wildcard .env),--env-file .env,)
-SRC := PYTHONPATH=apps/api/src:apps/gateway/src
+SRC := PYTHONPATH=apps/api/src:apps/gateway/src:packages/policy/src
 
 .PHONY: help bootstrap dev down migrate seed test demo
 
@@ -32,11 +32,11 @@ down: ## Stop local services
 migrate: ## Apply database schema (alembic upgrade head)
 	$(SRC) $(UV) --no-sync alembic -c apps/api/alembic.ini upgrade head
 
-seed: ## Seed demo org, owner, agent, tools via the API
-	$(UV) --no-sync python scripts/seed.py
+seed: ## Seed demo org, owner, agent, tools, canonical policy bundle via the API
+	$(SRC) $(UV) --no-sync python scripts/seed.py
 
 test: ## Run unit + integration tests (integration needs 'make dev')
 	$(UV) pytest
 
-demo: ## One safe tool call through the gateway -> decision event in the DB
-	$(UV) --no-sync python scripts/demo.py
+demo: ## Demo 2: read allowed, external send denied, duplicate refund protected
+	$(SRC) $(UV) --no-sync python scripts/demo.py

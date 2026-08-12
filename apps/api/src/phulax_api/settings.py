@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     phulax_env: str = "dev"
     database_url: str = DEFAULT_DATABASE_URL
     gateway_signing_key: str = "fake-dev-key-change-me-not-a-secret-0001"
+    # Ed25519 seed for signing policy bundles (base64, raw 32 bytes).
+    # Dev-only default — the matching public key sits in the gateway's
+    # settings. Production overrides both via environment (T08).
+    policy_signing_key: str = "kKasbk/pQFhr30OmFNV4kjqKk1Xw76ga6wPtxGpp61Y="
     token_ttl_seconds: int = 900  # short-lived by design (plan §7, T06)
     token_audience: str = "phulax-gateway"
     token_issuer: str = "phulax-control-plane"

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from phulax_api.health import health
-from phulax_api.routers import agents, events, orgs, sessions, tools
+from phulax_api.routers import agents, events, executions, orgs, policies, sessions, tools
 
 
 def create_app() -> FastAPI:
@@ -12,6 +12,8 @@ def create_app() -> FastAPI:
     app.include_router(tools.router)
     app.include_router(sessions.router)
     app.include_router(events.router)
+    app.include_router(policies.router)
+    app.include_router(executions.router)
     return app
 
 

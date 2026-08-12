@@ -50,6 +50,9 @@ def ingest_event(body: EventIngest, db: Session = Depends(get_db)) -> EventOut:
         action_request_id=request.id,
         verdict=body.event.verdict,
         rule=body.event.rule,
+        reason_codes=body.event.reason_codes,
+        matched_rules=body.event.matched_rules,
+        risk_score=body.event.risk_score,
         policy_version=body.event.policy_version,
         latency_ms=body.event.latency_ms,
     )
@@ -86,6 +89,9 @@ def _event_out(request: ActionRequest, event: Event) -> EventOut:
         type=event.type,
         verdict=event.verdict,  # type: ignore[arg-type]
         rule=event.rule,
+        reason_codes=event.reason_codes,
+        matched_rules=event.matched_rules,
+        risk_score=event.risk_score,
         policy_version=event.policy_version,
         latency_ms=event.latency_ms,
         created_at=event.created_at,

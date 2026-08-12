@@ -10,6 +10,15 @@ class Settings(BaseSettings):
     gateway_signing_key: str = "fake-dev-key-change-me-not-a-secret-0001"
     control_plane_url: str = "http://127.0.0.1:8000"
     token_audience: str = "phulax-gateway"
+    # Ed25519 public key for verifying policy bundles (base64, raw 32 bytes).
+    # Configured out-of-band by design — never fetched over the same channel
+    # as the bundles it verifies (T08). Dev default pairs with the control
+    # plane's dev signing key.
+    policy_public_key: str = "6mxLfImpih3R5NzxL3H6wCBH2ARC9CvjmdKFotj2fyg="
+    # How long a verified bundle serves decisions before the gateway asks
+    # for a newer one. Refresh failure never evicts: cached enforcement
+    # keeps working through a control-plane outage (T14).
+    policy_refresh_seconds: float = 30.0
 
 
 @lru_cache

@@ -1,13 +1,18 @@
-"""Seed the walking skeleton: demo org, owner, agent v1.0.0, three tools.
+"""Seed the demo environment: org, owner, agent v1.0.0, three tools, and
+the canonical policy bundle (plan §7.2).
 
-Idempotent — safe to run repeatedly. Talks to the control-plane API only
-(never the DB directly), so the seed exercises the same surface agents use.
+Idempotent — safe to run repeatedly (the bundle is republished only when
+its rules differ from the latest published version). Talks to the
+control-plane API only (never the DB directly), so the seed exercises the
+same surface agents use.
 """
 
 import os
 import sys
 
 import httpx
+import yaml
+from phulax_policy.examples import CANONICAL_BUNDLE_YAML
 
 API_URL = f"http://127.0.0.1:{os.environ.get('API_PORT', '8000')}"
 
@@ -54,6 +59,20 @@ TOOLS = [
         "side_effect": "write",
     },
 ]
+
+
+def publish_bundle_if_changed(client: httpx.Client, org_id: str) -> dict:
+    """Publish the canonical bundle unless the latest version already
+    carries exactly these rules."""
+    canonical_rules = yaml.safe_load(CANONICAL_BUNDLE_YAML)["rules"]
+    latest = client.get("/v1/policy-bundles/latest", params={"org_id": org_id})
+    if latest.status_code == 200 and latest.json()["rules"] == canonical_rules:
+        return latest.json()
+    response = client.post(
+        "/v1/policy-bundles", json={"org_id": org_id, "document": CANONICAL_BUNDLE_YAML}
+    )
+    response.raise_for_status()
+    return response.json()
 
 
 def get_or_create(client: httpx.Client, path: str, body: dict, lookup: dict) -> dict:
@@ -106,10 +125,14 @@ def main() -> int:
                     f"{created['name']} ({created['sensitivity']}/{created['side_effect']})"
                 )
 
+            bundle = publish_bundle_if_changed(client, org["id"])
+            rule_ids = ", ".join(rule["id"] for rule in bundle["rules"])
+
             print(f"seed: org        {org['name']} ({org['id']})")
             print(f"seed: owner      {owner['email']}")
             print(f"seed: agent      {agent['name']} v{agent['latest_version']['version']}")
             print(f"seed: tools      {', '.join(seeded_tools)}")
+            print(f"seed: policy     bundle v{bundle['version']} (signed): {rule_ids}")
             return 0
     except httpx.HTTPError as exc:
         print(f"seed: FAILED talking to {API_URL} — is 'make dev' running? ({exc})")

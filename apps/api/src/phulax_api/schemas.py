@@ -6,7 +6,8 @@ from pydantic import BaseModel, EmailStr, Field
 
 Sensitivity = Literal["low", "medium", "high"]
 SideEffect = Literal["read", "write", "irreversible"]
-Verdict = Literal["allow", "block", "hold"]
+Verdict = Literal["allow", "deny", "require_approval", "freeze"]
+ExecutionState = Literal["AUTHORIZED", "EXECUTING", "SUCCEEDED", "FAILED"]
 
 
 class OrgCreate(BaseModel):
@@ -121,6 +122,9 @@ class ActionRequestIn(BaseModel):
 class DecisionIn(BaseModel):
     verdict: Verdict
     rule: str
+    reason_codes: list[str] = Field(default_factory=list)
+    matched_rules: list[str] = Field(default_factory=list)
+    risk_score: int | None = Field(default=None, ge=0, le=100)
     policy_version: str | None = None
     latency_ms: int | None = None
 
@@ -141,6 +145,55 @@ class EventOut(BaseModel):
     type: str
     verdict: Verdict
     rule: str
+    reason_codes: list[str]
+    matched_rules: list[str]
+    risk_score: int | None
     policy_version: str | None
     latency_ms: int | None
+    created_at: datetime
+
+
+class BundlePublish(BaseModel):
+    """Rules arrive as the authored YAML document — reviewable as-is."""
+
+    org_id: uuid.UUID
+    document: str = Field(min_length=1)
+
+
+class BundleOut(BaseModel):
+    id: uuid.UUID
+    org_id: uuid.UUID
+    version: int
+    rules: list[dict]
+    signature: str
+    created_at: datetime
+
+
+class ExecutionClaim(BaseModel):
+    org_id: uuid.UUID
+    idempotency_key: str = Field(min_length=1, max_length=200)
+    request_id: uuid.UUID
+    canonical_hash: str = Field(min_length=64, max_length=64)
+
+
+class ExecutionClaimOut(BaseModel):
+    execution_id: uuid.UUID
+    claimed: bool
+    state: ExecutionState
+    result_meta: dict | None
+
+
+class ExecutionComplete(BaseModel):
+    state: Literal["SUCCEEDED", "FAILED"]
+    result_meta: dict = Field(default_factory=dict)
+
+
+class ExecutionOut(BaseModel):
+    id: uuid.UUID
+    org_id: uuid.UUID
+    idempotency_key: str
+    request_id: uuid.UUID
+    canonical_hash: str
+    state: ExecutionState
+    result_meta: dict | None
     created_at: datetime

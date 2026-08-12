@@ -8,9 +8,11 @@ ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 COPY pyproject.toml uv.lock ./
 COPY apps/api/pyproject.toml apps/api/pyproject.toml
 COPY apps/gateway/pyproject.toml apps/gateway/pyproject.toml
+COPY packages/policy/pyproject.toml packages/policy/pyproject.toml
 RUN uv sync --frozen --no-dev --no-install-workspace
 
 COPY apps ./apps
+COPY packages ./packages
 RUN uv sync --frozen --no-dev --package phulax-gateway
 
 EXPOSE 8080

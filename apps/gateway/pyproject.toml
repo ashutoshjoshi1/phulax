@@ -11,7 +11,11 @@ dependencies = [
     "pydantic-settings>=2.6",
     "pyjwt>=2.9",
     "jsonschema>=4.23",
+    "phulax-policy",
 ]
+
+[tool.uv.sources]
+phulax-policy = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

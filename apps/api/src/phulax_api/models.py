@@ -32,7 +32,11 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 SENSITIVITIES = ("low", "medium", "high")
 SIDE_EFFECTS = ("read", "write", "irreversible")
-VERDICTS = ("allow", "block", "hold")
+# The decision model (plan §4.4): every verdict is one of the four effects.
+VERDICTS = ("allow", "deny", "require_approval", "freeze")
+# The execution state machine (plan §5.5): only one atomic transition may
+# enter EXECUTING for an idempotency key.
+EXECUTION_STATES = ("AUTHORIZED", "EXECUTING", "SUCCEEDED", "FAILED")
 
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
@@ -161,6 +165,58 @@ class Event(Base):
     type: Mapped[str] = mapped_column(String(50), nullable=False, default="decision")
     verdict: Mapped[str] = mapped_column(String(20), nullable=False)
     rule: Mapped[str] = mapped_column(String(200), nullable=False)
+    # Explainability (plan §4.4): why, by which rules, under which policy.
+    reason_codes: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    matched_rules: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    risk_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     policy_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = _created_at()
+
+
+class PolicyBundle(Base):
+    """A versioned, signed set of rules (plan §7.2, T08).
+
+    Immutable once published: a rule change is a *new* version, never an
+    UPDATE — same discipline as ``AgentVersion``. The signature covers
+    (version, rules), so replaying old rules under a new version fails
+    verification at the gateway.
+    """
+
+    __tablename__ = "policy_bundles"
+    __table_args__ = (UniqueConstraint("org_id", "version"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    org_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id"), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    rules: Mapped[list] = mapped_column(JSONB, nullable=False)
+    signature: Mapped[str] = mapped_column(String(120), nullable=False)
+    created_at: Mapped[datetime] = _created_at()
+
+
+class Execution(Base):
+    """At-most-once side effect per idempotency key (plan §5.5, T07).
+
+    The unique key plus the compare-and-set claim (``UPDATE … WHERE
+    state='AUTHORIZED'``) guarantee exactly one winner enters EXECUTING;
+    concurrent duplicates read the recorded outcome instead of re-executing.
+    ``result_meta`` is metadata-first: a result hash, never the result.
+    """
+
+    __tablename__ = "executions"
+    __table_args__ = (
+        UniqueConstraint("org_id", "idempotency_key"),
+        CheckConstraint(f"state IN {EXECUTION_STATES}", name="state"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    org_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id"), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(200), nullable=False)
+    request_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    canonical_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    state: Mapped[str] = mapped_column(String(20), nullable=False, default="AUTHORIZED")
+    result_meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = _created_at()
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )

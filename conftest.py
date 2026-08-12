@@ -13,12 +13,14 @@ from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
 from phulax_api.settings import get_settings
+from phulax_policy.examples import CANONICAL_BUNDLE_YAML
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 ALEMBIC_INI = "apps/api/alembic.ini"
 ALL_TABLES = (
-    "events, action_requests, sessions, tools, agent_versions, agents, users, organizations"
+    "events, action_requests, executions, policy_bundles, sessions, tools, "
+    "agent_versions, agents, users, organizations"
 )
 
 
@@ -159,6 +161,50 @@ def seeded(api_client: TestClient) -> dict:
             "side_effect": "read",
         },
     )
+    for name, sensitivity, side_effect, args_schema in (
+        (
+            "send_email",
+            "medium",
+            "write",
+            {
+                "type": "object",
+                "properties": {
+                    "to": {"type": "string"},
+                    "subject": {"type": "string"},
+                    "body": {"type": "string"},
+                },
+                "required": ["to", "subject", "body"],
+            },
+        ),
+        (
+            "issue_refund",
+            "high",
+            "write",
+            {
+                "type": "object",
+                "properties": {
+                    "order_id": {"type": "string"},
+                    "amount": {"type": "number", "exclusiveMinimum": 0},
+                },
+                "required": ["order_id", "amount"],
+            },
+        ),
+    ):
+        api_client.post(
+            "/v1/tools",
+            json={
+                "org_id": org["id"],
+                "name": name,
+                "description": f"{name} (simulated)",
+                "args_schema": args_schema,
+                "sensitivity": sensitivity,
+                "side_effect": side_effect,
+            },
+        )
+    bundle = api_client.post(
+        "/v1/policy-bundles",
+        json={"org_id": org["id"], "document": CANONICAL_BUNDLE_YAML},
+    ).json()
     session = api_client.post(
         "/v1/sessions",
         json={
@@ -171,6 +217,7 @@ def seeded(api_client: TestClient) -> dict:
         "org": org,
         "owner": owner,
         "agent": agent,
+        "bundle": bundle,
         "session": session,
         "token": token["token"],
     }
